@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reference — Diff &amp; Code-Reading Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<div class="kicker">Reference</div>
+<h1>Diff &amp; Code-Reading Cheat Sheet</h1>
+<p class="lede">Quick lookup. Print this one out.</p>
+
+<h2>Diff symbols</h2>
+<pre><code>-  line removed
++  line added
+   (no symbol) unchanged context line
+@@ ... @@   location marker (line numbers, can ignore at first)</code></pre>
+
+<h2>The one question to ask of any diff</h2>
+<p>"What can now happen that couldn't before — or what can no longer happen that could before?"</p>
+
+<h2>Reading an unfamiliar function — order of attack</h2>
+<ol>
+<li>Read the name and the docstring (the quoted text right under <code>def</code>) first</li>
+<li>Read top to bottom once, without trying to understand every detail</li>
+<li>Find the return value(s) — what does this function hand back?</li>
+<li>For each branch (<code>if</code>/<code>elif</code>/<code>else</code>), say in one sentence what triggers it</li>
+<li>Only then, worry about the exact syntax of any one line</li>
+</ol>
+
+<h2>Common Python control words</h2>
+<ul>
+<li><code>continue</code> — skip the rest of this loop step, go to the next one</li>
+<li><code>break</code> — exit the loop entirely</li>
+<li><code>return</code> — exit the function, optionally handing back a value</li>
+<li><code>pass</code> — do nothing (a placeholder)</li>
+</ul>
+
+<h2>Governance-relevant questions, every time</h2>
+<ul>
+<li>Is this a structural (code) control, or just an instruction (prompt/comment)?</li>
+<li>Could this run on real personal data? What happens to that data if it does?</li>
+<li>If this is wrong, who notices — the user, or no one?</li>
+</ul>
+
+<nav class="lesson-links">
+  Used in: <a href="../lessons/0001-reading-code-and-diffs.html">Lesson 1 — Reading Code &amp; Diffs</a>
+</nav>
+
+</body>
+</html>

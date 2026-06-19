@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 1 — Reading Code &amp; Diffs</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<div class="kicker">Lesson 1 · Engineering with AI</div>
+<h1>Reading Code &amp; Diffs</h1>
+<p class="lede">
+Right now, when Claude changes a file, you can tell <em>that</em> something changed — but not always
+<em>what</em>, or whether it's the right change. This lesson gives you just enough to read a small diff
+and a short Python function with real understanding, using a piece of your own AutoForm project as the
+worked example.
+</p>
+
+<div class="callout governance">
+<strong>Why this matters for governance.</strong> Your own <code>MISSION.md</code> says you stay the
+decision-maker over what Claude builds — reviewing changes before accepting them, not just trusting
+"it runs." That's not possible if you can't read what changed. This lesson is the first building block
+underneath that principle.
+</div>
+
+<h2>1. What a diff actually is</h2>
+<p>
+A <strong>diff</strong> is just a before/after comparison of a file, shown line by line. Git (and Claude
+Code, when it shows you changes) uses three markers:
+</p>
+<ul>
+<li><code>-</code> a line that was <strong>removed</strong></li>
+<li><code>+</code> a line that was <strong>added</strong></li>
+<li>no marker — a <strong>context</strong> line, unchanged, shown so you know where you are</li>
+</ul>
+<p>
+That's the whole syntax. Everything else is just reading the actual code on each line.
+</p>
+
+<h2>2. A real example from AutoForm</h2>
+<p>
+Your decision log (<code>governance/08_decision_log.md</code>, entry D007) records a real decision:
+block the "Submit" button <em>in code</em>, not just by telling the AI not to click it. Here's roughly
+what that change looked like as a diff, inside <code>agents/form_agent.py</code>:
+</p>
+
+<pre><code><span class="diff-context"> def _execute_actions(page, actions):</span>
+<span class="diff-context">     descriptions = []</span>
+<span class="diff-context">     for act in actions:</span>
+<span class="diff-context">         kind = act.get("action", "")</span>
+<span class="diff-context">         if kind == "click":</span>
+<span class="diff-context">             x, y = int(act["x"]), int(act["y"])</span>
+<span class="diff-context">             label = act.get("label", "")</span>
+<span class="diff-add">+            if _is_submit_action(label):</span>
+<span class="diff-add">+                descriptions.append(</span>
+<span class="diff-add">+                    f"BLOCKED — refused to click '{label}'"</span>
+<span class="diff-add">+                )</span>
+<span class="diff-add">+                continue</span>
+<span class="diff-context">             page.mouse.click(x, y)</span>
+<span class="diff-context">             descriptions.append(f"Click ({x},{y}) — {label}")</span></code></pre>
+
+<p>Read it the slow way, line by line, in plain English:</p>
+<ul>
+<li><code>if _is_submit_action(label):</code> — before doing anything else, ask a separate function
+"is this label a Submit-type button?"</li>
+<li><code>descriptions.append(...)</code> — if yes, record in the log that the click was refused</li>
+<li><code>continue</code> — skip the rest of this loop iteration entirely, meaning <code>page.mouse.click(x, y)</code>
+on the next line <strong>never runs</strong> for a submit button</li>
+</ul>
+
+<p>
+That last point is the whole safety mechanism. The click physically cannot happen for a submit-labelled
+button, because the code returns early. No system prompt, no instruction to the AI — a structural
+guarantee. This is exactly the "instruction vs code" distinction your own <code>notes/architecture.md</code>
+already names.
+</p>
+
+<div class="callout">
+<strong>The one question worth asking on every diff:</strong> "What can now happen that couldn't before —
+or what can no longer happen that could before?" For this diff: clicking a submit button can no longer
+happen. That's the entire point of the change, in one sentence.
+</div>
+
+<h2>3. Try it yourself</h2>
+<div class="quiz" id="q1">
+  <div class="q">1. In a diff, what does a line starting with <code>-</code> mean?</div>
+  <label><input type="radio" name="q1" value="wrong1"> Line was renamed elsewhere</label>
+  <label><input type="radio" name="q1" value="correct"> Line was removed</label>
+  <label><input type="radio" name="q1" value="wrong2"> Line was commented out</label>
+  <label><input type="radio" name="q1" value="wrong3"> Line caused an error</label>
+  <div class="feedback correct">Correct — removed entirely from the new version.</div>
+  <div class="feedback incorrect">Not quite — a bare <code>-</code> means the line existed before and is gone now.</div>
+</div>
+
+<div class="quiz" id="q2">
+  <div class="q">2. In the AutoForm diff above, what stops the submit click from running?</div>
+  <label><input type="radio" name="q2" value="wrong1"> A comment telling the AI not to click it</label>
+  <label><input type="radio" name="q2" value="wrong2"> A slower timeout on submit buttons</label>
+  <label><input type="radio" name="q2" value="correct"> A <code>continue</code> that skips the click line</label>
+  <label><input type="radio" name="q2" value="wrong3"> A popup asking the user to confirm</label>
+  <div class="feedback correct">Correct — <code>continue</code> exits that loop step before reaching <code>page.mouse.click</code>.</div>
+  <div class="feedback incorrect">Look again at what happens right after <code>descriptions.append(...)</code> in the added lines.</div>
+</div>
+
+<div class="quiz" id="q3">
+  <div class="q">3. Why is this control "structural" rather than "instructional"?</div>
+  <label><input type="radio" name="q3" value="wrong1"> Because it's written in English comments</label>
+  <label><input type="radio" name="q3" value="wrong2"> Because Claude reviewed it twice</label>
+  <label><input type="radio" name="q3" value="correct"> Because the code itself blocks the action, with no AI judgment involved</label>
+  <label><input type="radio" name="q3" value="wrong3"> Because it was tested on all 7 forms</label>
+  <div class="feedback correct">Correct — even if a future prompt changed, this line of code would still block the click.</div>
+  <div class="feedback incorrect">Re-read the architecture note: structural means the rule survives even if the AI drifts.</div>
+</div>
+
+<h2>4. Read it for real</h2>
+<p>
+Open <code>agents/form_agent.py</code> in your own AutoForm project (in VS Code, or even just by asking
+Claude to show it to you) and find <code>_is_submit_action</code>, just above <code>_execute_actions</code>.
+It's six lines. Read it before scrolling further, then check yourself:
+</p>
+<pre><code>def _is_submit_action(label: str) -> bool:
+    low = label.lower().strip()
+    return any(p in low for p in _SUBMIT_PATTERNS)</code></pre>
+<p>
+In plain English: take the button's label, make it lowercase and trim whitespace, then check whether
+<em>any</em> of a list of known "submit-ish" words (defined elsewhere as <code>_SUBMIT_PATTERNS</code>)
+appears inside it. If any do, it's treated as a submit action.
+</p>
+
+<div class="callout followup">
+<strong>Ask Claude a follow-up right now, in your own words:</strong> "Show me <code>_SUBMIT_PATTERNS</code>
+in form_agent.py and explain why each word is on the list." Don't just read my answer — go get the real
+one and see if it matches what you'd guess.
+</div>
+
+<h2>Primary source</h2>
+<p class="source">
+For the diff syntax itself, the canonical reference is Git's own documentation:
+<a href="https://git-scm.com/docs/git-diff" target="_blank">git-scm.com/docs/git-diff</a> — skim the
+"Generating patches" section only; the rest is more detail than you need yet.
+</p>
+
+<nav class="lesson-links">
+  See also: <a href="../reference/diff-cheatsheet.html">Diff &amp; code-reading cheat sheet</a> ·
+  Mission: <a href="../MISSION.md">MISSION.md</a>
+</nav>
+
+<script>
+document.querySelectorAll('.quiz').forEach(quiz => {
+  quiz.querySelectorAll('input[type="radio"]').forEach(input => {
+    input.addEventListener('change', () => {
+      quiz.querySelectorAll('.feedback').forEach(f => f.classList.remove('show'));
+      const fb = quiz.querySelector('.feedback.' + (input.value === 'correct' ? 'correct' : 'incorrect'));
+      if (fb) fb.classList.add('show');
+    });
+  });
+});
+</script>
+
+</body>
+</html>
